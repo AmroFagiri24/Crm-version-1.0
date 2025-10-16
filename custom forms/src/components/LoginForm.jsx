@@ -63,12 +63,19 @@ function LoginForm({ onLogin, users = [] }) {
         return;
       }
 
-      // Check if username exists
+      // Check if username exists in Firebase
       try {
         const { getUser, saveUser } = await import('../utils/firebase');
         const existingUser = await getUser(username);
         
         if (existingUser) {
+          setError("Username already exists in the system.");
+          return;
+        }
+        
+        // Also check local users
+        const localExistingUser = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+        if (localExistingUser) {
           setError("Username already exists.");
           return;
         }
@@ -134,6 +141,7 @@ function LoginForm({ onLogin, users = [] }) {
         const user = await getUser(username);
 
         if (user && user.password === password) {
+          console.log('User authenticated from Firebase:', user.username);
           // Show 2FA for admin and super_manager roles
           if (user.role === 'admin' || user.role === 'super_manager') {
             setPendingUser(user);
@@ -142,11 +150,43 @@ function LoginForm({ onLogin, users = [] }) {
             onLogin(user);
           }
         } else {
-          setError("Invalid username or password.");
+          // Also check local users array as fallback
+          const localUser = users.find(u => 
+            u.username.toLowerCase() === username.toLowerCase() && 
+            u.password === password
+          );
+          
+          if (localUser) {
+            console.log('User authenticated from local storage:', localUser.username);
+            if (localUser.role === 'admin' || localUser.role === 'super_manager') {
+              setPendingUser(localUser);
+              setShowTwoFA(true);
+            } else {
+              onLogin(localUser);
+            }
+          } else {
+            setError("Invalid username or password.");
+          }
         }
       } catch (error) {
         console.error('Login error:', error);
-        setError("Login failed. Please try again.");
+        // Fallback to local users if Firebase fails
+        const localUser = users.find(u => 
+          u.username.toLowerCase() === username.toLowerCase() && 
+          u.password === password
+        );
+        
+        if (localUser) {
+          console.log('User authenticated from local fallback:', localUser.username);
+          if (localUser.role === 'admin' || localUser.role === 'super_manager') {
+            setPendingUser(localUser);
+            setShowTwoFA(true);
+          } else {
+            onLogin(localUser);
+          }
+        } else {
+          setError("Login failed. Please check your credentials and try again.");
+        }
       }
     }
   };

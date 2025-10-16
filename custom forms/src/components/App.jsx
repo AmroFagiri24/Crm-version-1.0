@@ -636,25 +636,35 @@ function App() {
   // User account handlers
   const handleCreateUserAccount = async (employee) => {
     try {
+      // Get current user's restaurant info for new users
+      const currentUserRestaurant = currentUser?.restaurantName || currentUser?.companyName || 'Restaurant';
+      const currentUserLicense = currentUser?.licenseType || 'trial';
+      const currentUserSubscription = currentUser?.subscriptionStatus || 'trial';
+      
       const newUser = {
         username: employee.username,
         password: employee.password,
         name: employee.name,
         role: employee.role,
-        employeeId: employee.id,
-        tenantId: employee.tenantId || currentTenant,
-        restaurantName: employee.restaurantName,
-        licenseType: employee.licenseType,
-        trialStartDate: employee.trialStartDate,
-        trialEndDate: employee.trialEndDate,
-        subscriptionStatus: employee.subscriptionStatus,
-        createdAt: employee.createdAt
+        employeeId: employee.id || employee.employeeId,
+        tenantId: employee.tenantId || currentTenant || currentUser?.tenantId,
+        restaurantName: employee.restaurantName || currentUserRestaurant,
+        companyName: employee.companyName || currentUserRestaurant,
+        licenseType: employee.licenseType || currentUserLicense,
+        trialStartDate: employee.trialStartDate || currentUser?.trialStartDate,
+        trialEndDate: employee.trialEndDate || currentUser?.trialEndDate,
+        subscriptionStatus: employee.subscriptionStatus || currentUserSubscription,
+        email: employee.email || '',
+        phone: employee.phone || '',
+        createdAt: employee.createdAt || new Date().toISOString(),
+        createdBy: currentUser?.username || 'system'
       };
       
       // Save to Firebase (skip admin account)
       if (newUser.username !== 'AmroFagiri') {
         const { saveUser } = await import('../utils/firebase');
         await saveUser(newUser);
+        console.log('User saved to Firebase:', newUser.username);
       }
       
       const updatedAccounts = [...userAccounts, newUser];
@@ -700,12 +710,19 @@ function App() {
     try {
       const updatedUser = userAccounts.find(u => u.username === oldUsername);
       if (updatedUser) {
-        const newUserData = { ...updatedUser, ...updates };
+        const newUserData = { ...updatedUser, ...updates, updatedAt: new Date().toISOString() };
         
-        // Save to Firebase (skip admin account)
-        if (oldUsername !== 'AmroFagiri') {
+        // If username is changing, delete old Firebase entry and create new one
+        if (updates.username && updates.username !== oldUsername && oldUsername !== 'AmroFagiri') {
+          const { deleteUser, saveUser } = await import('../utils/firebase');
+          await deleteUser(oldUsername);
+          await saveUser(newUserData);
+          console.log('User updated in Firebase:', newUserData.username);
+        } else if (oldUsername !== 'AmroFagiri') {
+          // Just update existing user
           const { saveUser } = await import('../utils/firebase');
           await saveUser(newUserData);
+          console.log('User updated in Firebase:', newUserData.username);
         }
         
         // Update local state
@@ -713,6 +730,9 @@ function App() {
           user.username === oldUsername ? newUserData : user
         );
         setUserAccounts(updatedAccounts);
+        
+        // Update global storage
+        saveToStorage('global_user_accounts', updatedAccounts);
         
         // If username changed, update localStorage auth if it's the current user
         if (updates.username && updates.username !== oldUsername && currentUser?.username === oldUsername) {

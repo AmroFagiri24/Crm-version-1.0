@@ -13,18 +13,30 @@ function UserManagement({ userAccounts, onCreateUserAccount, onDeleteUserAccount
   const [editPassword, setEditPassword] = useState("");
   const [selectedTenant, setSelectedTenant] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username.trim() || !password.trim() || !name.trim()) {
       alert("Please fill in all required fields");
       return;
     }
 
-    // Check if username already exists
+    // Check if username already exists in local accounts
     const existingUser = userAccounts.find(user => user.username.toLowerCase() === username.toLowerCase());
     if (existingUser) {
       alert("Username already exists. Please choose a different username.");
       return;
+    }
+
+    // Check if username exists in Firebase
+    try {
+      const { getUser } = await import('../utils/firebase');
+      const firebaseUser = await getUser(username.trim());
+      if (firebaseUser) {
+        alert("Username already exists in the system. Please choose a different username.");
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking username in Firebase:', error);
     }
 
     // Check user limits based on subscription plan for selected restaurant
@@ -48,14 +60,17 @@ function UserManagement({ userAccounts, onCreateUserAccount, onDeleteUserAccount
       return;
     }
 
-    onCreateUserAccount({
+    const newUserData = {
       username: username.trim(),
       password: password.trim(),
       name: name.trim(),
       role,
       tenantId: selectedTenant,
-      id: Date.now()
-    });
+      id: Date.now(),
+      createdAt: new Date().toISOString()
+    };
+
+    await onCreateUserAccount(newUserData);
 
     setUsername("");
     setPassword("");
@@ -63,7 +78,7 @@ function UserManagement({ userAccounts, onCreateUserAccount, onDeleteUserAccount
     setRole("cashier");
   };
 
-  const handleEditSubmit = (e) => {
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!editName.trim() || !editUsername.trim() || !editPassword.trim()) {
       alert("Please fill in all fields");
@@ -80,7 +95,21 @@ function UserManagement({ userAccounts, onCreateUserAccount, onDeleteUserAccount
       return;
     }
 
-    onEditUserAccount(editingUser.username, {
+    // Check if username exists in Firebase (excluding current user)
+    if (editUsername.toLowerCase() !== editingUser.username.toLowerCase()) {
+      try {
+        const { getUser } = await import('../utils/firebase');
+        const firebaseUser = await getUser(editUsername.trim());
+        if (firebaseUser) {
+          alert("Username already exists in the system. Please choose a different username.");
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking username in Firebase:', error);
+      }
+    }
+
+    await onEditUserAccount(editingUser.username, {
       name: editName.trim(),
       username: editUsername.trim(),
       password: editPassword.trim()

@@ -16,22 +16,62 @@ const db = getFirestore(app);
 
 // User Management
 export const saveUser = async (userData) => {
-  await setDoc(doc(db, 'users', userData.username), userData);
+  try {
+    console.log('Saving user to Firebase:', userData.username);
+    await setDoc(doc(db, 'users', userData.username), userData);
+    console.log('User saved successfully to Firebase:', userData.username);
+  } catch (error) {
+    console.error('Error saving user to Firebase:', error);
+    throw error;
+  }
 };
 
 export const getUser = async (username) => {
-  const docRef = doc(db, 'users', username);
-  const docSnap = await getDoc(docRef);
-  return docSnap.exists() ? docSnap.data() : null;
+  try {
+    const docRef = doc(db, 'users', username);
+    const docSnap = await getDoc(docRef);
+    const userData = docSnap.exists() ? docSnap.data() : null;
+    if (userData) {
+      console.log('User found in Firebase:', username);
+    }
+    return userData;
+  } catch (error) {
+    console.error('Error getting user from Firebase:', error);
+    return null;
+  }
 };
 
 export const getAllUsers = async () => {
-  const querySnapshot = await getDocs(collection(db, 'users'));
-  return querySnapshot.docs.map(doc => doc.data());
+  try {
+    const querySnapshot = await getDocs(collection(db, 'users'));
+    const users = querySnapshot.docs.map(doc => doc.data());
+    console.log('Retrieved users from Firebase:', users.length);
+    return users;
+  } catch (error) {
+    console.error('Error getting all users from Firebase:', error);
+    return [];
+  }
 };
 
 export const deleteUser = async (username) => {
-  await deleteDoc(doc(db, 'users', username));
+  try {
+    console.log('Deleting user from Firebase:', username);
+    await deleteDoc(doc(db, 'users', username));
+    console.log('User deleted successfully from Firebase:', username);
+  } catch (error) {
+    console.error('Error deleting user from Firebase:', error);
+    throw error;
+  }
+};
+
+export const checkUsernameExists = async (username) => {
+  try {
+    const user = await getUser(username);
+    return user !== null;
+  } catch (error) {
+    console.error('Error checking username existence:', error);
+    return false;
+  }
 };
 
 // Restaurant Management

@@ -15,7 +15,7 @@ function EmployeeManagement({ employees, onAddEmployee, onDeleteEmployee, locati
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim() || !locationId) {
       alert("Please fill in required fields");
@@ -41,11 +41,23 @@ function EmployeeManagement({ employees, onAddEmployee, onDeleteEmployee, locati
 
     // Create user account if requested
     if (createAccount && username.trim() && password.trim()) {
-      // Check if username already exists
+      // Check if username already exists in local accounts
       const existingUser = userAccounts.find(user => user.username.toLowerCase() === username.toLowerCase());
       if (existingUser) {
         alert("Username already exists. Please choose a different username.");
         return;
+      }
+
+      // Check if username exists in Firebase
+      try {
+        const { getUser } = await import('../utils/firebase');
+        const firebaseUser = await getUser(username.trim());
+        if (firebaseUser) {
+          alert("Username already exists in the system. Please choose a different username.");
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking username in Firebase:', error);
       }
       
       const newUserAccount = {
@@ -110,7 +122,7 @@ function EmployeeManagement({ employees, onAddEmployee, onDeleteEmployee, locati
           marginBottom: "10px",
           fontSize: "2.2em",
           fontWeight: "700"
-        }}>👥 Employee Management</h2>
+        }}>👥 Staff Management</h2>
         <p style={{ 
           color: "var(--clr-text-secondary)", 
           fontSize: "1.1em" 
@@ -131,7 +143,7 @@ function EmployeeManagement({ employees, onAddEmployee, onDeleteEmployee, locati
             display: "flex",
             alignItems: "center",
             gap: "10px"
-          }}>➕ Add New Employee</h3>
+          }}>➕ Add New Staff Member</h3>
           
           <form onSubmit={handleSubmit}>
             <div className="form-group">
@@ -140,7 +152,7 @@ function EmployeeManagement({ employees, onAddEmployee, onDeleteEmployee, locati
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Employee full name"
+                placeholder="Staff member full name"
                 required
               />
             </div>
@@ -268,7 +280,7 @@ function EmployeeManagement({ employees, onAddEmployee, onDeleteEmployee, locati
             )}
             
             <button type="submit" className="primary-btn" style={{ width: "100%" }}>
-              ➕ Add Employee
+              ➕ Add Staff Member
             </button>
           </form>
         </div>
@@ -282,7 +294,7 @@ function EmployeeManagement({ employees, onAddEmployee, onDeleteEmployee, locati
             alignItems: "center",
             gap: "10px"
           }}>
-            👥 All Employees 
+            👥 All Staff 
             <span style={{
               backgroundColor: "var(--clr-primary-brand)",
               color: "white",
@@ -303,7 +315,7 @@ function EmployeeManagement({ employees, onAddEmployee, onDeleteEmployee, locati
             }}>
               <div style={{ fontSize: "3em", marginBottom: "15px" }}>👥</div>
               <p style={{ color: "var(--clr-text-secondary)", fontSize: "1.1em" }}>
-                No employees added yet.<br/>
+                No staff members added yet.<br/>
                 Add your first team member!
               </p>
             </div>
@@ -335,7 +347,7 @@ function EmployeeManagement({ employees, onAddEmployee, onDeleteEmployee, locati
                       
                       <button
                         onClick={() => {
-                          if (window.confirm(`Remove employee "${employee.name}"?`)) {
+                          if (window.confirm(`Remove staff member "${employee.name}"?`)) {
                             onDeleteEmployee(employee.id);
                           }
                         }}

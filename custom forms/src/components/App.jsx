@@ -32,6 +32,14 @@ import {
   saveTenantData as saveTenantDataCloud,
   loadTenantData as loadTenantDataCloud
 } from "../utils/cloudStorage";
+import {
+  syncAllDataToMongoDB,
+  saveOrderToMongoDB,
+  saveMenuItemToMongoDB,
+  saveInventoryToMongoDB,
+  saveEmployeeToMongoDB,
+  saveSupplierToMongoDB
+} from "../utils/mongoIntegration";
 
 const LOCATIONS_KEY = "locations";
 const EMPLOYEES_KEY = "employees";
@@ -290,6 +298,24 @@ function App() {
       localStorage.setItem(AUTH_KEY, JSON.stringify(user));
       localStorage.setItem('current_user_key', userKey);
       
+      // Auto-sync all data to MongoDB on login
+      setTimeout(() => {
+        syncAllDataToMongoDB({
+          username: user.username,
+          tenantId: user.tenantId,
+          name: user.name,
+          role: user.role,
+          restaurantName: user.restaurantName,
+          licenseType: user.licenseType,
+          inventory: inventory,
+          orders: orders,
+          menuItems: menuItems,
+          locations: locations,
+          employees: employees,
+          suppliers: suppliers
+        });
+      }, 2000); // Sync after 2 seconds to allow data to load
+      
       // Show trial warning if trial expires soon
       if (user.role !== 'admin' && user.licenseType === 'trial' && user.trialEndDate) {
         const trialEnd = new Date(user.trialEndDate);
@@ -420,7 +446,7 @@ function App() {
     const updatedOrders = [...orders, orderWithId];
     setOrders(updatedOrders);
     
-    // Save to user-specific storage AND Firebase
+    // Save to user-specific storage, Firebase AND MongoDB
     if (currentUser) {
       const userKey = `user_${currentUser.username}`;
       saveToStorage(`${userKey}_orders`, updatedOrders);
@@ -428,8 +454,11 @@ function App() {
       try {
         const { saveUserData } = await import('../utils/firebase');
         await saveUserData(currentUser.username, 'orders', updatedOrders);
+        
+        // Also save to MongoDB
+        await saveOrderToMongoDB(orderWithId, currentUser.username, currentUser.tenantId);
       } catch (error) {
-        console.error('Error saving order to Firebase:', error);
+        console.error('Error saving order to Firebase/MongoDB:', error);
       }
     }
     
@@ -574,7 +603,7 @@ function App() {
     const updatedInventory = [...inventory, purchaseWithMeta];
     setInventory(updatedInventory);
     
-    // Save to Firebase and localStorage
+    // Save to Firebase, localStorage AND MongoDB
     if (currentUser) {
       const userKey = `user_${currentUser.username}`;
       saveToStorage(`${userKey}_inventory`, updatedInventory);
@@ -582,8 +611,11 @@ function App() {
       try {
         const { saveUserData } = await import('../utils/firebase');
         await saveUserData(currentUser.username, 'inventory', updatedInventory);
+        
+        // Also save to MongoDB
+        await saveInventoryToMongoDB(purchaseWithMeta, currentUser.username, currentUser.tenantId);
       } catch (error) {
-        console.error('Error saving inventory to Firebase:', error);
+        console.error('Error saving inventory to Firebase/MongoDB:', error);
       }
     }
   };
@@ -604,7 +636,7 @@ function App() {
     const updatedMenuItems = [...menuItems, itemWithId];
     setMenuItems(updatedMenuItems);
     
-    // Save to Firebase and localStorage
+    // Save to Firebase, localStorage AND MongoDB
     if (currentUser) {
       const userKey = `user_${currentUser.username}`;
       saveToStorage(`${userKey}_menu_items`, updatedMenuItems);
@@ -612,8 +644,11 @@ function App() {
       try {
         const { saveUserData } = await import('../utils/firebase');
         await saveUserData(currentUser.username, 'menuItems', updatedMenuItems);
+        
+        // Also save to MongoDB
+        await saveMenuItemToMongoDB(itemWithId, currentUser.username, currentUser.tenantId);
       } catch (error) {
-        console.error('Error saving menu item to Firebase:', error);
+        console.error('Error saving menu item to Firebase/MongoDB:', error);
       }
     }
     

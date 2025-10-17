@@ -152,6 +152,9 @@ function App() {
     if (currentUser && currentTenant !== undefined) {
       // Data is saved using tenant-specific keys
       saveData(getTenantKey(`${currentUser.username}_${INVENTORY_KEY_BASE}`, currentTenant), inventory);
+      // Also save to user-specific storage
+      const userKey = `user_${currentUser.username}`;
+      saveToStorage(`${userKey}_inventory`, inventory);
     }
   }, [inventory, currentUser, currentTenant]);
 
@@ -159,33 +162,72 @@ function App() {
     if (currentUser && currentTenant !== undefined) {
       // Data is saved using tenant-specific keys
       saveData(getTenantKey(`${currentUser.username}_${ORDERS_KEY_BASE}`, currentTenant), orders);
+      // Also save to user-specific storage
+      const userKey = `user_${currentUser.username}`;
+      saveToStorage(`${userKey}_orders`, orders);
     }
   }, [orders, currentUser, currentTenant]);
 
   useEffect(() => {
-    if (currentTenant !== undefined) {
+    if (currentUser && currentTenant !== undefined) {
       // Menu is tenant-specific
       saveData(getTenantKey(MENU_KEY_BASE, currentTenant), menuItems);
+      // Also save to user-specific storage
+      const userKey = `user_${currentUser.username}`;
+      saveToStorage(`${userKey}_menu_items`, menuItems);
     }
-  }, [menuItems, currentTenant]);
+  }, [menuItems, currentTenant, currentUser]);
 
   useEffect(() => {
-    if (currentTenant !== undefined) {
+    if (currentUser && currentTenant !== undefined) {
       saveData(getTenantKey(LOCATIONS_KEY, currentTenant), locations);
+      // Also save to user-specific storage
+      const userKey = `user_${currentUser.username}`;
+      saveToStorage(`${userKey}_locations`, locations);
     }
-  }, [locations, currentTenant]);
+  }, [locations, currentTenant, currentUser]);
 
   useEffect(() => {
-    if (currentTenant !== undefined) {
+    if (currentUser && currentTenant !== undefined) {
       saveData(getTenantKey(EMPLOYEES_KEY, currentTenant), employees);
+      // Also save to user-specific storage
+      const userKey = `user_${currentUser.username}`;
+      saveToStorage(`${userKey}_employees`, employees);
     }
-  }, [employees, currentTenant]);
+  }, [employees, currentTenant, currentUser]);
 
   useEffect(() => {
-    if (currentTenant !== undefined) {
+    if (currentUser && currentTenant !== undefined) {
       saveData(getTenantKey(SUPPLIERS_KEY, currentTenant), suppliers);
+      // Also save to user-specific storage
+      const userKey = `user_${currentUser.username}`;
+      saveToStorage(`${userKey}_suppliers`, suppliers);
     }
-  }, [suppliers, currentTenant]);
+  }, [suppliers, currentTenant, currentUser]);
+
+  // Auto-save to Firebase periodically
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const autoSaveInterval = setInterval(async () => {
+      try {
+        const { saveUserData } = await import('../utils/firebase');
+        await Promise.all([
+          saveUserData(currentUser.username, 'inventory', inventory),
+          saveUserData(currentUser.username, 'orders', orders),
+          saveUserData(currentUser.username, 'menuItems', menuItems),
+          saveUserData(currentUser.username, 'locations', locations),
+          saveUserData(currentUser.username, 'employees', employees),
+          saveUserData(currentUser.username, 'suppliers', suppliers)
+        ]);
+        console.log('Auto-save to Firebase completed');
+      } catch (error) {
+        console.error('Auto-save to Firebase failed:', error);
+      }
+    }, 30000); // Auto-save every 30 seconds
+    
+    return () => clearInterval(autoSaveInterval);
+  }, [currentUser, inventory, orders, menuItems, locations, employees, suppliers]);
 
   // User accounts are now saved immediately when changed
 
@@ -212,28 +254,37 @@ function App() {
       const loadUserData = async () => {
         try {
           const { getUserData } = await import('../utils/firebase');
-          const [firebaseOrders, firebaseInventory, firebaseMenuItems] = await Promise.all([
+          const [firebaseOrders, firebaseInventory, firebaseMenuItems, firebaseLocations, firebaseEmployees, firebaseSuppliers] = await Promise.all([
             getUserData(user.username, 'orders'),
             getUserData(user.username, 'inventory'),
-            getUserData(user.username, 'menuItems')
+            getUserData(user.username, 'menuItems'),
+            getUserData(user.username, 'locations'),
+            getUserData(user.username, 'employees'),
+            getUserData(user.username, 'suppliers')
           ]);
           
+          // Load data with Firebase priority, fallback to localStorage
           setOrders(firebaseOrders.length > 0 ? firebaseOrders : loadFromStorage(`${userKey}_orders`, []));
           setInventory(firebaseInventory.length > 0 ? firebaseInventory : loadFromStorage(`${userKey}_inventory`, []));
           setMenuItems(firebaseMenuItems.length > 0 ? firebaseMenuItems : loadFromStorage(`${userKey}_menu_items`, []));
+          setLocations(firebaseLocations.length > 0 ? firebaseLocations : loadFromStorage(`${userKey}_locations`, []));
+          setEmployees(firebaseEmployees.length > 0 ? firebaseEmployees : loadFromStorage(`${userKey}_employees`, []));
+          setSuppliers(firebaseSuppliers.length > 0 ? firebaseSuppliers : loadFromStorage(`${userKey}_suppliers`, []));
+          
+          console.log('User data loaded successfully from Firebase/localStorage');
         } catch (error) {
           console.error('Error loading from Firebase, using localStorage:', error);
+          // Fallback to localStorage for all data
           setMenuItems(loadFromStorage(`${userKey}_menu_items`, []));
           setInventory(loadFromStorage(`${userKey}_inventory`, []));
           setOrders(loadFromStorage(`${userKey}_orders`, []));
+          setLocations(loadFromStorage(`${userKey}_locations`, []));
+          setEmployees(loadFromStorage(`${userKey}_employees`, []));
+          setSuppliers(loadFromStorage(`${userKey}_suppliers`, []));
         }
       };
       
       loadUserData();
-      
-      setLocations(loadFromStorage(`${userKey}_locations`, []));
-      setEmployees(loadFromStorage(`${userKey}_employees`, []));
-      setSuppliers(loadFromStorage(`${userKey}_suppliers`, []));
       
       setCurrentUser(user);
       localStorage.setItem(AUTH_KEY, JSON.stringify(user));
@@ -260,11 +311,42 @@ function App() {
     return false;
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Save all current data before logout
+    if (currentUser) {
+      const userKey = `user_${currentUser.username}`;
+      
+      // Save to localStorage
+      saveToStorage(`${userKey}_inventory`, inventory);
+      saveToStorage(`${userKey}_orders`, orders);
+      saveToStorage(`${userKey}_menu_items`, menuItems);
+      saveToStorage(`${userKey}_locations`, locations);
+      saveToStorage(`${userKey}_employees`, employees);
+      saveToStorage(`${userKey}_suppliers`, suppliers);
+      
+      // Save to Firebase
+      try {
+        const { saveUserData } = await import('../utils/firebase');
+        await Promise.all([
+          saveUserData(currentUser.username, 'inventory', inventory),
+          saveUserData(currentUser.username, 'orders', orders),
+          saveUserData(currentUser.username, 'menuItems', menuItems),
+          saveUserData(currentUser.username, 'locations', locations),
+          saveUserData(currentUser.username, 'employees', employees),
+          saveUserData(currentUser.username, 'suppliers', suppliers)
+        ]);
+        console.log('All data saved successfully before logout');
+      } catch (error) {
+        console.error('Error saving data to Firebase before logout:', error);
+      }
+    }
+    
+    // Clear user session but keep data
     setCurrentUser(null);
     setCurrentTenant(null);
     localStorage.removeItem(AUTH_KEY);
-    // Clear sensitive state upon logout
+    
+    // Reset state to empty arrays (data will be loaded on next login)
     setInventory([]);
     setOrders([]);
     setMenuItems([]);

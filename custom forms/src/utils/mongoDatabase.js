@@ -5,7 +5,7 @@ const uri = process.env.MONGODB_URI || 'mongodb+srv://amrofagiri24_db_user:MdrB7
 let client;
 let db;
 
-const connectToMongoDB = async () => {
+export const connectToMongoDB = async () => {
   if (!client) {
     client = new MongoClient(uri);
     await client.connect();

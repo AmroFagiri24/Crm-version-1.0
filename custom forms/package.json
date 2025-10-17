@@ -6,6 +6,7 @@
     "dev": "vite",
     "build": "npx vite build",
     "preview": "vite preview",
+    "server": "node server.js",
     "setup-db": "node setup-collections.js",
     "check-db": "node check-db.js",
     "test-connection": "node test-connection.js",
@@ -13,6 +14,7 @@
   },
   "dependencies": {
     "dotenv": "^17.2.3",
+    "express": "^4.21.2",
     "mongodb": "^6.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

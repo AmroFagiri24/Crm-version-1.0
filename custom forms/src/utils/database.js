@@ -1,74 +1,87 @@
-import pkg from 'pg';
-const { Pool } = pkg;
+import { MongoClient } from 'mongodb';
 
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST || 'database-1.cul6uu88mb1i.us-east-1.rds.amazonaws.com',
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT || 5432,
-  ssl: { rejectUnauthorized: false }
+const uri = process.env.MONGODB_URI || 'mongodb://username:password@docdb-cluster.cluster-xyz.us-east-1.docdb.amazonaws.com:27017/?ssl=true&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false';
+
+const client = new MongoClient(uri, {
+  ssl: true,
+  sslValidate: false,
+  sslCA: process.env.SSL_CA_PATH
 });
+
+let db;
+
+const connectDB = async () => {
+  if (!db) {
+    await client.connect();
+    db = client.db('crm_database');
+  }
+  return db;
+};
 
 // User Management
 export const saveUser = async (userData) => {
   try {
-    console.log('Saving user to PostgreSQL:', userData.username);
-    const query = `
-      INSERT INTO users (username, password, role, email, phone, created_at)
-      VALUES ($1, $2, $3, $4, $5, NOW())
-      ON CONFLICT (username) 
-      DO UPDATE SET password = $2, role = $3, email = $4, phone = $5
-    `;
-    await pool.query(query, [
-      userData.username,
-      userData.password,
-      userData.role,
-      userData.email,
-      userData.phone
-    ]);
-    console.log('User saved successfully to PostgreSQL:', userData.username);
+    console.log('Saving user to DocumentDB:', userData.username);
+    const database = await connectDB();
+    const users = database.collection('users');
+    
+    await users.replaceOne(
+      { username: userData.username },
+      {
+        username: userData.username,
+        password: userData.password,
+        role: userData.role,
+        email: userData.email,
+        phone: userData.phone,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      { upsert: true }
+    );
+    console.log('User saved successfully to DocumentDB:', userData.username);
   } catch (error) {
-    console.error('Error saving user to PostgreSQL:', error);
+    console.error('Error saving user to DocumentDB:', error);
     throw error;
   }
 };
 
 export const getUser = async (username) => {
   try {
-    const query = 'SELECT * FROM users WHERE username = $1';
-    const result = await pool.query(query, [username]);
-    const userData = result.rows[0] || null;
+    const database = await connectDB();
+    const users = database.collection('users');
+    const userData = await users.findOne({ username });
     if (userData) {
-      console.log('User found in PostgreSQL:', username);
+      console.log('User found in DocumentDB:', username);
     }
     return userData;
   } catch (error) {
-    console.error('Error getting user from PostgreSQL:', error);
+    console.error('Error getting user from DocumentDB:', error);
     return null;
   }
 };
 
 export const getAllUsers = async () => {
   try {
-    const query = 'SELECT * FROM users ORDER BY created_at DESC';
-    const result = await pool.query(query);
-    console.log('Retrieved users from PostgreSQL:', result.rows.length);
-    return result.rows;
+    const database = await connectDB();
+    const users = database.collection('users');
+    const result = await users.find({}).sort({ createdAt: -1 }).toArray();
+    console.log('Retrieved users from DocumentDB:', result.length);
+    return result;
   } catch (error) {
-    console.error('Error getting all users from PostgreSQL:', error);
+    console.error('Error getting all users from DocumentDB:', error);
     return [];
   }
 };
 
 export const deleteUser = async (username) => {
   try {
-    console.log('Deleting user from PostgreSQL:', username);
-    const query = 'DELETE FROM users WHERE username = $1';
-    await pool.query(query, [username]);
-    console.log('User deleted successfully from PostgreSQL:', username);
+    console.log('Deleting user from DocumentDB:', username);
+    const database = await connectDB();
+    const users = database.collection('users');
+    await users.deleteOne({ username });
+    console.log('User deleted successfully from DocumentDB:', username);
   } catch (error) {
-    console.error('Error deleting user from PostgreSQL:', error);
+    console.error('Error deleting user from DocumentDB:', error);
     throw error;
   }
 };
@@ -85,47 +98,59 @@ export const checkUsernameExists = async (username) => {
 
 // Restaurant Management
 export const saveRestaurant = async (restaurantData) => {
-  const query = `
-    INSERT INTO restaurants (tenant_id, name, address, phone, email, created_at)
-    VALUES ($1, $2, $3, $4, $5, NOW())
-    ON CONFLICT (tenant_id)
-    DO UPDATE SET name = $2, address = $3, phone = $4, email = $5
-  `;
-  await pool.query(query, [
-    restaurantData.tenantId,
-    restaurantData.name,
-    restaurantData.address,
-    restaurantData.phone,
-    restaurantData.email
-  ]);
+  const database = await connectDB();
+  const restaurants = database.collection('restaurants');
+  
+  await restaurants.replaceOne(
+    { tenantId: restaurantData.tenantId },
+    {
+      tenantId: restaurantData.tenantId,
+      name: restaurantData.name,
+      address: restaurantData.address,
+      phone: restaurantData.phone,
+      email: restaurantData.email,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    { upsert: true }
+  );
 };
 
 export const getAllRestaurants = async () => {
-  const query = 'SELECT * FROM restaurants ORDER BY created_at DESC';
-  const result = await pool.query(query);
-  return result.rows;
+  const database = await connectDB();
+  const restaurants = database.collection('restaurants');
+  return await restaurants.find({}).sort({ createdAt: -1 }).toArray();
 };
 
 export const deleteRestaurant = async (tenantId) => {
-  const query = 'DELETE FROM restaurants WHERE tenant_id = $1';
-  await pool.query(query, [tenantId]);
+  const database = await connectDB();
+  const restaurants = database.collection('restaurants');
+  await restaurants.deleteOne({ tenantId });
 };
 
 // User Data Management
 export const saveUserData = async (username, dataType, data) => {
-  const query = `
-    INSERT INTO user_data (username, data_type, data, created_at)
-    VALUES ($1, $2, $3, NOW())
-    ON CONFLICT (username, data_type)
-    DO UPDATE SET data = $3, updated_at = NOW()
-  `;
-  await pool.query(query, [username, dataType, JSON.stringify(data)]);
+  const database = await connectDB();
+  const userData = database.collection('user_data');
+  
+  await userData.replaceOne(
+    { username, dataType },
+    {
+      username,
+      dataType,
+      data,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    { upsert: true }
+  );
 };
 
 export const getUserData = async (username, dataType) => {
-  const query = 'SELECT data FROM user_data WHERE username = $1 AND data_type = $2';
-  const result = await pool.query(query, [username, dataType]);
-  return result.rows[0] ? JSON.parse(result.rows[0].data) : [];
+  const database = await connectDB();
+  const userData = database.collection('user_data');
+  const result = await userData.findOne({ username, dataType });
+  return result ? result.data : [];
 };
 
-export default pool;
+export default client;

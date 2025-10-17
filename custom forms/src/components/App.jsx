@@ -665,6 +665,11 @@ function App() {
         const { saveUser } = await import('../utils/firebase');
         await saveUser(newUser);
         console.log('User saved to Firebase:', newUser.username);
+        
+        // Also save to MongoDB so it appears in MongoDB Compass
+        const { saveUserToMongoDB } = await import('../utils/mongoUsers');
+        await saveUserToMongoDB(newUser);
+        console.log('User saved to MongoDB:', newUser.username);
       }
       
       const updatedAccounts = [...userAccounts, newUser];
@@ -691,6 +696,11 @@ function App() {
       if (username !== 'AmroFagiri') {
         const { deleteUser } = await import('../utils/firebase');
         await deleteUser(username);
+        
+        // Also delete from MongoDB
+        const { deleteUserFromMongoDB } = await import('../utils/mongoUsers');
+        await deleteUserFromMongoDB(username);
+        console.log('User deleted from MongoDB:', username);
       }
       
       const updatedAccounts = userAccounts.filter((user) => user.username !== username);
@@ -715,14 +725,21 @@ function App() {
         // If username is changing, delete old Firebase entry and create new one
         if (updates.username && updates.username !== oldUsername && oldUsername !== 'AmroFagiri') {
           const { deleteUser, saveUser } = await import('../utils/firebase');
+          const { deleteUserFromMongoDB, saveUserToMongoDB } = await import('../utils/mongoUsers');
+          
           await deleteUser(oldUsername);
           await saveUser(newUserData);
-          console.log('User updated in Firebase:', newUserData.username);
+          await deleteUserFromMongoDB(oldUsername);
+          await saveUserToMongoDB(newUserData);
+          console.log('User updated in Firebase and MongoDB:', newUserData.username);
         } else if (oldUsername !== 'AmroFagiri') {
           // Just update existing user
           const { saveUser } = await import('../utils/firebase');
+          const { saveUserToMongoDB } = await import('../utils/mongoUsers');
+          
           await saveUser(newUserData);
-          console.log('User updated in Firebase:', newUserData.username);
+          await saveUserToMongoDB(newUserData);
+          console.log('User updated in Firebase and MongoDB:', newUserData.username);
         }
         
         // Update local state

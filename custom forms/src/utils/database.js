@@ -128,7 +128,129 @@ export const deleteRestaurant = async (tenantId) => {
   await restaurants.deleteOne({ tenantId });
 };
 
-// User Data Management
+// Menu Items Management
+export const saveMenuItem = async (userId, menuItem) => {
+  const database = await connectDB();
+  const menuItems = database.collection('menu_items');
+  
+  await menuItems.insertOne({
+    ...menuItem,
+    userId,
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+};
+
+export const getMenuItems = async (userId) => {
+  const database = await connectDB();
+  const menuItems = database.collection('menu_items');
+  return await menuItems.find({ userId, isActive: true }).toArray();
+};
+
+export const deleteMenuItem = async (userId, itemId) => {
+  const database = await connectDB();
+  const menuItems = database.collection('menu_items');
+  await menuItems.updateOne(
+    { _id: itemId, userId },
+    { $set: { isActive: false, updatedAt: new Date() } }
+  );
+};
+
+// Orders Management
+export const saveOrder = async (userId, orderData) => {
+  const database = await connectDB();
+  const orders = database.collection('orders');
+  
+  await orders.insertOne({
+    ...orderData,
+    userId,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+};
+
+export const getOrders = async (userId) => {
+  const database = await connectDB();
+  const orders = database.collection('orders');
+  return await orders.find({ userId }).sort({ date: -1 }).toArray();
+};
+
+export const updateOrderStatus = async (userId, orderId, status) => {
+  const database = await connectDB();
+  const orders = database.collection('orders');
+  await orders.updateOne(
+    { _id: orderId, userId },
+    { $set: { status, updatedAt: new Date() } }
+  );
+};
+
+// Inventory Management
+export const saveInventoryBatch = async (userId, inventoryData) => {
+  const database = await connectDB();
+  const inventory = database.collection('inventory');
+  
+  await inventory.insertOne({
+    ...inventoryData,
+    userId,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+};
+
+export const getInventory = async (userId) => {
+  const database = await connectDB();
+  const inventory = database.collection('inventory');
+  return await inventory.find({ userId }).sort({ date: -1 }).toArray();
+};
+
+export const deleteInventoryBatch = async (userId, batchId) => {
+  const database = await connectDB();
+  const inventory = database.collection('inventory');
+  await inventory.deleteOne({ _id: batchId, userId });
+};
+
+// Employees Management
+export const saveEmployee = async (userId, employeeData) => {
+  const database = await connectDB();
+  const employees = database.collection('employees');
+  
+  await employees.insertOne({
+    ...employeeData,
+    userId,
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+};
+
+export const getEmployees = async (userId) => {
+  const database = await connectDB();
+  const employees = database.collection('employees');
+  return await employees.find({ userId, isActive: true }).toArray();
+};
+
+// Suppliers Management
+export const saveSupplier = async (userId, supplierData) => {
+  const database = await connectDB();
+  const suppliers = database.collection('suppliers');
+  
+  await suppliers.insertOne({
+    ...supplierData,
+    userId,
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+};
+
+export const getSuppliers = async (userId) => {
+  const database = await connectDB();
+  const suppliers = database.collection('suppliers');
+  return await suppliers.find({ userId, isActive: true }).toArray();
+};
+
+// User Data Management (Legacy support)
 export const saveUserData = async (username, dataType, data) => {
   const database = await connectDB();
   const userData = database.collection('user_data');

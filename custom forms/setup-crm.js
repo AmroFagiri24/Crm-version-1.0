@@ -54,6 +54,22 @@ async function setupCRM() {
       createdAt: new Date()
     });
     
+    // Create restaurant_users collection
+    await db.createCollection('restaurant_users');
+    await db.collection('restaurant_users').insertOne({
+      restaurantName: 'Bella Vista Restaurant',
+      ownerName: 'Maria Rodriguez',
+      email: 'maria@bellavista.com',
+      phone: '+1555123456',
+      address: '123 Main St, City, State 12345',
+      cuisine: 'Italian',
+      seatingCapacity: 80,
+      status: 'active',
+      subscriptionPlan: 'premium',
+      createdAt: new Date(),
+      lastLogin: new Date()
+    });
+    
     console.log('✓ CRM collections created successfully');
     
     // List all collections

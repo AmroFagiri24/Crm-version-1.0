@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "vite",
     "build": "npx vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "setup-db": "node setup-collections.js",
+    "check-db": "node check-db.js",
+    "test-connection": "node test-connection.js"
   },
   "dependencies": {
     "dotenv": "^17.2.3",

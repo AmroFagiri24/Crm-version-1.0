@@ -1,18 +1,15 @@
 import { MongoClient } from 'mongodb';
 
-const uri = process.env.MONGODB_URI || 'mongodb://username:password@docdb-cluster.cluster-xyz.us-east-1.docdb.amazonaws.com:27017/?ssl=true&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false';
+const uri = process.env.MONGODB_URI || 'mongodb+srv://amrofagiri24_db_user:MdrB73OPBKyM2urc@cluster0.s8me4tw.mongodb.net/?retryWrites=true&w=majority';
 
 async function checkDatabase() {
-  const client = new MongoClient(uri, {
-    ssl: true,
-    sslValidate: false
-  });
+  const client = new MongoClient(uri);
 
   try {
-    console.log('Testing DocumentDB connection...');
+    console.log('Testing MongoDB Atlas connection...');
     
     await client.connect();
-    console.log('✓ DocumentDB connection successful');
+    console.log('✓ MongoDB Atlas connection successful');
     
     const db = client.db('crm_database');
     
@@ -34,10 +31,10 @@ async function checkDatabase() {
       }
     }
     
-    console.log('\n✓ DocumentDB check completed');
+    console.log('\n✓ MongoDB Atlas check completed');
     
   } catch (error) {
-    console.error('❌ DocumentDB error:', error.message);
+    console.error('❌ MongoDB Atlas error:', error.message);
   } finally {
     await client.close();
   }

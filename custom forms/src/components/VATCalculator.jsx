@@ -249,7 +249,7 @@ const VATCalculator = () => {
             <ul style={{ paddingLeft: "20px" }}>
               <li>Standard VAT rate: <strong>18%</strong></li>
               <li>Applied to most goods and services</li>
-              <li>VAT registration required for businesses with annual turnover > RWF 20,000,000</li>
+              <li>VAT registration required for businesses with annual turnover &gt; RWF 20,000,000</li>
             </ul>
           </div>
           <div>

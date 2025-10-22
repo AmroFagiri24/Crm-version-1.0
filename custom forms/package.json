@@ -6,14 +6,12 @@
     "dev": "vite",
     "build": "npx vite build",
     "preview": "vite preview",
-    "server": "node server.js",
-
+    "server": "node server.js"
   },
   "dependencies": {
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "firebase": "^12.4.0",
-
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

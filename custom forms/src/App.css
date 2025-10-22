@@ -1,4 +1,72 @@
-/* App.css - minimal file to satisfy import */
+/* Basic CSS Variables */
+:root {
+  --clr-primary: #007bff;
+  --clr-bg-primary: #ffffff;
+  --clr-bg-secondary: #f8f9fa;
+  --clr-text-primary: #333333;
+  --clr-text-secondary: #666666;
+  --clr-border: #dee2e6;
+  --clr-success: #28a745;
+  --clr-danger: #dc3545;
+}
+
 body {
   margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background-color: var(--clr-bg-secondary);
+  color: var(--clr-text-primary);
+}
+
+.primary-btn {
+  background-color: var(--clr-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.primary-btn:hover {
+  background-color: #0056b3;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--clr-text-primary);
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid var(--clr-border);
+  border-radius: 8px;
+  font-size: 1em;
+  transition: border-color 0.3s ease;
+  background-color: var(--clr-bg-primary);
+  box-sizing: border-box;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--clr-primary);
+}
+
+.login-title {
+  color: var(--clr-primary);
+  font-weight: 700;
+}
+
+/* Dark mode support */
+body.dark-mode {
+  --clr-bg-primary: #1a1a1a;
+  --clr-bg-secondary: #2d2d2d;
+  --clr-text-primary: #ffffff;
+  --clr-text-secondary: #cccccc;
+  --clr-border: #444444;
 }

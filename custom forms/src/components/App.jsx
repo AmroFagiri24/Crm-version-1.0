@@ -32,14 +32,7 @@ import {
   saveTenantData as saveTenantDataCloud,
   loadTenantData as loadTenantDataCloud
 } from "../utils/cloudStorage";
-import {
-  syncAllDataToMongoDB,
-  saveOrderToMongoDB,
-  saveMenuItemToMongoDB,
-  saveInventoryToMongoDB,
-  saveEmployeeToMongoDB,
-  saveSupplierToMongoDB
-} from "../utils/mongoIntegration";
+
 
 const LOCATIONS_KEY = "locations";
 const EMPLOYEES_KEY = "employees";
@@ -298,23 +291,7 @@ function App() {
       localStorage.setItem(AUTH_KEY, JSON.stringify(user));
       localStorage.setItem('current_user_key', userKey);
       
-      // Auto-sync all data to MongoDB on login
-      setTimeout(() => {
-        syncAllDataToMongoDB({
-          username: user.username,
-          tenantId: user.tenantId,
-          name: user.name,
-          role: user.role,
-          restaurantName: user.restaurantName,
-          licenseType: user.licenseType,
-          inventory: inventory,
-          orders: orders,
-          menuItems: menuItems,
-          locations: locations,
-          employees: employees,
-          suppliers: suppliers
-        });
-      }, 2000); // Sync after 2 seconds to allow data to load
+
       
       // Show trial warning if trial expires soon
       if (user.role !== 'admin' && user.licenseType === 'trial' && user.trialEndDate) {
@@ -454,9 +431,7 @@ function App() {
       try {
         const { saveUserData } = await import('../utils/firebase');
         await saveUserData(currentUser.username, 'orders', updatedOrders);
-        
-        // Also save to MongoDB
-        await saveOrderToMongoDB(orderWithId, currentUser.username, currentUser.tenantId);
+
       } catch (error) {
         console.error('Error saving order to Firebase/MongoDB:', error);
       }
@@ -611,9 +586,7 @@ function App() {
       try {
         const { saveUserData } = await import('../utils/firebase');
         await saveUserData(currentUser.username, 'inventory', updatedInventory);
-        
-        // Also save to MongoDB
-        await saveInventoryToMongoDB(purchaseWithMeta, currentUser.username, currentUser.tenantId);
+
       } catch (error) {
         console.error('Error saving inventory to Firebase/MongoDB:', error);
       }
@@ -644,9 +617,7 @@ function App() {
       try {
         const { saveUserData } = await import('../utils/firebase');
         await saveUserData(currentUser.username, 'menuItems', updatedMenuItems);
-        
-        // Also save to MongoDB
-        await saveMenuItemToMongoDB(itemWithId, currentUser.username, currentUser.tenantId);
+
       } catch (error) {
         console.error('Error saving menu item to Firebase/MongoDB:', error);
       }
@@ -782,11 +753,7 @@ function App() {
         const { saveUser } = await import('../utils/firebase');
         await saveUser(newUser);
         console.log('User saved to Firebase:', newUser.username);
-        
-        // Also save to MongoDB so it appears in MongoDB Compass
-        const { saveUserToMongoDB } = await import('../utils/mongoUsers');
-        await saveUserToMongoDB(newUser);
-        console.log('User saved to MongoDB:', newUser.username);
+
       }
       
       const updatedAccounts = [...userAccounts, newUser];
@@ -813,11 +780,7 @@ function App() {
       if (username !== 'AmroFagiri') {
         const { deleteUser } = await import('../utils/firebase');
         await deleteUser(username);
-        
-        // Also delete from MongoDB
-        const { deleteUserFromMongoDB } = await import('../utils/mongoUsers');
-        await deleteUserFromMongoDB(username);
-        console.log('User deleted from MongoDB:', username);
+
       }
       
       const updatedAccounts = userAccounts.filter((user) => user.username !== username);
@@ -842,21 +805,16 @@ function App() {
         // If username is changing, delete old Firebase entry and create new one
         if (updates.username && updates.username !== oldUsername && oldUsername !== 'AmroFagiri') {
           const { deleteUser, saveUser } = await import('../utils/firebase');
-          const { deleteUserFromMongoDB, saveUserToMongoDB } = await import('../utils/mongoUsers');
           
           await deleteUser(oldUsername);
           await saveUser(newUserData);
-          await deleteUserFromMongoDB(oldUsername);
-          await saveUserToMongoDB(newUserData);
-          console.log('User updated in Firebase and MongoDB:', newUserData.username);
+          console.log('User updated in Firebase:', newUserData.username);
         } else if (oldUsername !== 'AmroFagiri') {
           // Just update existing user
           const { saveUser } = await import('../utils/firebase');
-          const { saveUserToMongoDB } = await import('../utils/mongoUsers');
           
           await saveUser(newUserData);
-          await saveUserToMongoDB(newUserData);
-          console.log('User updated in Firebase and MongoDB:', newUserData.username);
+          console.log('User updated in Firebase:', newUserData.username);
         }
         
         // Update local state

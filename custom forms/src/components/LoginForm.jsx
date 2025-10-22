@@ -1,13 +1,12 @@
 import React, { useState } from "react";
-import TwoFactorAuth from "./TwoFactorAuth";
+
 
 function LoginForm({ onLogin, users = [] }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
-  const [showTwoFA, setShowTwoFA] = useState(false);
-  const [pendingUser, setPendingUser] = useState(null);
+
   const [formData, setFormData] = useState({
     name: '',
     companyName: '',
@@ -130,8 +129,7 @@ function LoginForm({ onLogin, users = [] }) {
       // Login
       // Check hardcoded admin first
       if (username.toLowerCase() === ADMIN_ACCOUNT.username.toLowerCase() && password === ADMIN_ACCOUNT.password) {
-        setPendingUser(ADMIN_ACCOUNT);
-        setShowTwoFA(true);
+        onLogin(ADMIN_ACCOUNT);
         return;
       }
 
@@ -142,13 +140,7 @@ function LoginForm({ onLogin, users = [] }) {
 
         if (user && user.password === password) {
           console.log('User authenticated from Firebase:', user.username);
-          // Show 2FA for admin and super_manager roles
-          if (user.role === 'admin' || user.role === 'super_manager') {
-            setPendingUser(user);
-            setShowTwoFA(true);
-          } else {
-            onLogin(user);
-          }
+          onLogin(user);
         } else {
           // Also check local users array as fallback
           const localUser = users.find(u => 
@@ -158,12 +150,7 @@ function LoginForm({ onLogin, users = [] }) {
           
           if (localUser) {
             console.log('User authenticated from local storage:', localUser.username);
-            if (localUser.role === 'admin' || localUser.role === 'super_manager') {
-              setPendingUser(localUser);
-              setShowTwoFA(true);
-            } else {
-              onLogin(localUser);
-            }
+            onLogin(localUser);
           } else {
             setError("Invalid username or password.");
           }
@@ -178,12 +165,7 @@ function LoginForm({ onLogin, users = [] }) {
         
         if (localUser) {
           console.log('User authenticated from local fallback:', localUser.username);
-          if (localUser.role === 'admin' || localUser.role === 'super_manager') {
-            setPendingUser(localUser);
-            setShowTwoFA(true);
-          } else {
-            onLogin(localUser);
-          }
+          onLogin(localUser);
         } else {
           setError("Login failed. Please check your credentials and try again.");
         }
@@ -191,27 +173,11 @@ function LoginForm({ onLogin, users = [] }) {
     }
   };
 
-  const handleTwoFASuccess = () => {
-    setShowTwoFA(false);
-    onLogin(pendingUser);
-    setPendingUser(null);
-  };
 
-  const handleTwoFACancel = () => {
-    setShowTwoFA(false);
-    setPendingUser(null);
-    setError("");
-  };
 
   return (
     <>
-      {showTwoFA && (
-        <TwoFactorAuth
-          user={pendingUser}
-          onVerifySuccess={handleTwoFASuccess}
-          onCancel={handleTwoFACancel}
-        />
-      )}
+
       <div className="login-container" style={{
         minHeight: "100vh",
         display: "flex",

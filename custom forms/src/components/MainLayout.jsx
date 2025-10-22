@@ -26,6 +26,7 @@ import KitchenOrderQueue from "./KitchenOrderQueue";
 import DataImportExport from "./DataImportExport";
 import VATCalculator from "./VATCalculator";
 import UserProfile from "./UserProfile";
+import Contact from "./Contact";
 
 
 // Helper component for the theme logic
@@ -344,6 +345,8 @@ function MainLayout(props) {
             showToast={showToast}
           />
         );
+      case "Contact":
+        return <Contact />;
 
       default:
         if (currentUser?.role === "admin") {
@@ -539,6 +542,20 @@ function MainLayout(props) {
             }}
           >
             👤 Profile
+          </a>
+          <a
+            href="#"
+            onClick={() => handleNavigation("Contact")}
+            className={isLinkActive("Contact")}
+            style={{
+              color: "var(--clr-text-primary)",
+              textDecoration: "none",
+              padding: "8px 12px",
+              borderRadius: "4px",
+              fontSize: "0.9em"
+            }}
+          >
+            📞 Contact
           </a>
           <button onClick={onLogout} className="logout-button">
             LOGOUT
